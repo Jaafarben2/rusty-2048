@@ -1,8 +1,8 @@
 [package]
-name = "2048 rust"
+name = "rusty_2048"
 version = "0.2.0"
 authors = ["jaafarbelhadj"]
-edition = "2026"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

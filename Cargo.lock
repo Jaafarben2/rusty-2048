@@ -2504,14 +2504,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "knowledge"
-version = "0.1.0"
-dependencies = [
- "dioxus",
- "getrandom 0.2.16",
-]
-
-[[package]]
 name = "kuchikiki"
 version = "0.8.8-speedreader"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3923,6 +3915,14 @@ name = "rustversion"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
+
+[[package]]
+name = "rusty_2048"
+version = "0.2.0"
+dependencies = [
+ "dioxus",
+ "getrandom 0.2.16",
+]
 
 [[package]]
 name = "ryu"
