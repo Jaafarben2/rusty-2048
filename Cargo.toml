@@ -1,14 +1,13 @@
 [package]
-name = "knowledge"
-version = "0.1.0"
-authors = ["root"]
-edition = "2021"
+name = "2048 rust"
+version = "0.2.0"
+authors = ["jaafarbelhadj"]
+edition = "2026"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 dioxus = { version = "0.7.1", features = ["router"] }
-dioxus-primitives = { git = "https://github.com/DioxusLabs/components", version = "0.0.1", default-features = false }
 getrandom = { version = "0.2", features = ["js"] }
 
 [features]

@@ -1,7 +1,9 @@
+use dioxus::html::u::is;
 use getrandom;
 use crate::game::game_kernel as game_kernel;
 use game_kernel::{Swap2DGame, Swap2DGameConfig, RetainerManager, BoardIndex};
 use crate::game::retainer_merger_variants::retainer_merger_variant_0::RetainerMerger as RetainerMerger;
+use crate::game::retainer_merger_variants::retainer_merger_variant_0::{RetainerMergerInfo};
 use std::ops::Add;
 
 pub use game_kernel::AllowedMoves;
@@ -10,6 +12,7 @@ pub use game_kernel::GameStatus;
 type SpecificElementType = i32;
 pub struct GameVariant0<const C_W:usize, const C_H:usize> {
     pub array : [[Option<SpecificElementType>; C_W]; C_H],
+    pub mergers_infos : [[Option<<RetainerMerger<SpecificElementType> as RetainerManager<SpecificElementType>>::RetainerMergerInfoType>; C_W]; C_H],
     pub nones_number : usize
 }
 pub type SpecificGame<const C_W: usize, const C_H: usize> = Swap2DGame<GameVariant0<C_W, C_H>>;
@@ -40,6 +43,25 @@ fn can_move<const C_W: usize, const C_H: usize>(g:&SpecificGame<C_W, C_H>, idx :
         temp_element = g.board_get_element((Idx.0, Idx.1));
         if temp_element == None || temp_element == ele {
             return true;
+        }
+    }
+    false
+}
+
+// can be optimized later
+fn is_status_changed<const C_W: usize, const C_H: usize>(g:&SpecificGame<C_W, C_H>) -> bool {
+    for id_x in 0..g.board_size.0 {
+        for id_y in 0..g.board_size.1 {
+            if let Some(merger_info) = g.game_variant_data.mergers_infos[id_x][id_y] {
+                if let  RetainerMergerInfo::Merged((_, _), (_, _)) = merger_info {
+                    return true;
+                }
+                else if let RetainerMergerInfo::NotMerged(OldIdx, _) = merger_info {
+                    if OldIdx != (id_x, id_y) {
+                        return true;
+                    }
+                }
+            }
         }
     }
     false
@@ -89,7 +111,7 @@ impl<const W: usize, const H: usize> Swap2DGameConfig for Swap2DGame<GameVariant
     }
 
     fn board_update_after_move(&mut self, _: AllowedMoves) {
-        if self.game_variant_data.nones_number == 0 { return;}
+        if self.game_variant_data.nones_number == 0 || !is_status_changed(self) { return;}
 
         let insert_idx = get_rand_idx(0, self.game_variant_data.nones_number);
 
@@ -106,6 +128,10 @@ impl<const W: usize, const H: usize> Swap2DGameConfig for Swap2DGame<GameVariant
                 }
             }
         }
+    }
+
+    fn board_elementary_move_details(&mut self, Idx: (usize, usize), retainer_merger_info: Option<<<Swap2DGame<GameVariant0<W, H>> as Swap2DGameConfig>::RetainerManager as RetainerManager<Self::ElementType>>::RetainerMergerInfoType>) {
+        self.game_variant_data.mergers_infos[Idx.0][Idx.1] = retainer_merger_info;
     }
 
     fn board_game_status_fn(&self) -> GameStatus {
@@ -136,6 +162,7 @@ impl<const C_W: usize, const C_H: usize> GameVariant0<C_W, C_H> {
             let rand_idx_1_start = get_rand_idx(0, C_W);
             let mut game_variant = GameVariant0 {
                 array: [[None; C_W]; C_H],
+                mergers_infos: [[None; C_W]; C_H],
                 nones_number: C_W * C_H,
             };
             

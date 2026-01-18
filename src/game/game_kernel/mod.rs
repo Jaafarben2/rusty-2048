@@ -15,13 +15,13 @@ pub enum GameStatus {
     END_SUCCESS,
 }
 
-type ElementCoordinates = (usize, usize);
-
 #[derive(Copy, Clone, Debug)]
 pub enum BoardIndex {
     CorrectIndex((usize,usize)),
     OutOfBounds
 }
+
+pub type CtxElementType = (usize, usize);
 
 pub struct Swap2DGame<GameVariant> {
     board_top_left_corner: (usize, usize),
@@ -40,9 +40,10 @@ pub struct Swap2DGame<GameVariant> {
 }
 
 pub trait RetainerManager<ElementType>{
+    type RetainerMergerInfoType;
     fn new() -> Self;
-    fn push_and_pop_if_filled(&mut self, element: Option<ElementType>) -> Option<ElementType>;
-    fn pop(&mut self) -> Option<ElementType>;
+    fn push_and_pop_if_filled(&mut self, ctx_element: CtxElementType, element: Option<ElementType>) -> Option<(ElementType,Self::RetainerMergerInfoType)>;
+    fn pop(&mut self) -> Option<(ElementType,Self::RetainerMergerInfoType)>;
 
 }
 
@@ -53,6 +54,7 @@ pub trait Swap2DGameConfig {
     
     fn board_get_element(&self, _: (usize, usize)) -> Option<Self::ElementType>;
     fn board_set_element(&mut self, _: (usize, usize), _: Option<Self::ElementType>);
+    fn board_elementary_move_details(&mut self, _: (usize, usize), retainer_merger_info: Option<<Self::RetainerManager as RetainerManager<Self::ElementType>>::RetainerMergerInfoType>);
     fn board_update_after_move(&mut self, _: AllowedMoves);
     fn board_game_status_fn(&self) -> GameStatus;
 
@@ -151,9 +153,11 @@ impl<GameVariant> Swap2DGame<GameVariant>
             while let BoardIndex::CorrectIndex(IdxInner) = board_index_inner{
                 let t= self.board_get_element(IdxInner);
                 if let BoardIndex::CorrectIndex(IdxToBeFilled) = board_index_to_be_filled {
-                    match retainer.push_and_pop_if_filled(t) {
-                        Some(a) => {
+                    match retainer.push_and_pop_if_filled(IdxInner, t) {
+                        Some((a, info)) => {
                             self.board_set_element(IdxToBeFilled, Some(a));
+                            self.board_elementary_move_details(IdxToBeFilled, Some(info));
+                            
                             board_index_to_be_filled = self.step_2d(IdxToBeFilled, inner_move);
                         }
                         _ => {}
@@ -165,7 +169,16 @@ impl<GameVariant> Swap2DGame<GameVariant>
 
             //flush remaining retainer buffer
             while let BoardIndex::CorrectIndex(IdxInner) = board_index_to_be_filled{
-                self.board_set_element(IdxInner, retainer.pop());
+                match retainer.pop() {
+                    Some((a, info)) => {
+                        self.board_set_element(IdxInner, Some(a));
+                        self.board_elementary_move_details(IdxInner, Some(info));
+                    }
+                    _ => {
+                        self.board_set_element(IdxInner, None);
+                        self.board_elementary_move_details(IdxInner, None);
+                    }
+                }
                 board_index_to_be_filled = self.step_2d(IdxInner, inner_move);
             }
             board_index_outer =self.step_2d(IdxOuter, outer_move);

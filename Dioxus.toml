@@ -3,7 +3,7 @@
 [web.app]
 
 # HTML title tag content
-title = "knowledge"
+title = "2048 Game"
 
 # include `assets` in web platform
 [web.resource]
