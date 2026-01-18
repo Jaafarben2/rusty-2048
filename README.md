@@ -1,6 +1,7 @@
 ###  rusty_2048
 
 Classic 2048 reinvented with multiple variants in Rust.
+It is already deployed at: [https://staticfile-jaafarbn2000.wasmer.app/](https://staticfile-jaafarbn2000.wasmer.app/)
 
 ## Development
 
