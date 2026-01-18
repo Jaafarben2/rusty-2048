@@ -1,13 +1,22 @@
-### Serving 2048
+###  rusty_2048
 
-Run the following command in the root of the project to start with the default platform:
+Classic 2048 reinvented with multiple variants in Rust.
 
-```bash
-dx serve
-```
+## Development
 
-To run for a different platform, use the `--platform platform` flag. E.g.
+1. Open the project in **VS Code**.  
+2. Reopen in the Dev Container when prompted.  
+3. Inside the container, run:
+
 ```bash
 dx serve --platform web
 ```
+
+## Build
+
+1. 
+```bash
+dx build --platform web --release
+```
+2. Web static files will be generated under rusty_2048/target/dx/rusty_2048/release/web/public
 

@@ -1,0 +1,4 @@
+{
+  "name": "rusty_2048_devcontainer",
+  "dockerFile": "Dockerfile"
+}
