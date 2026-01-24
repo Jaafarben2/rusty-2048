@@ -21,3 +21,7 @@ dx build --platform web --release
 ```
 2. Web static files will be generated under rusty_2048/target/dx/rusty_2048/release/web/public
 
+
+## License
+
+This project is licensed under the MIT License – see the [LICENSE](LICENSE) file for details.
