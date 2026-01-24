@@ -54,7 +54,6 @@ fn Head() -> Element {
         document::Link { rel: "stylesheet", href: MAIN_CSS }
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }
         document::Link { rel: "stylesheet", href: COMPONENTS_CSS }
-        document::Script { src: SCRIPT_JS, defer: true }
     }
 }
 
@@ -203,6 +202,7 @@ pub fn Classic2048Inner() -> Element {
     }
 
     rsx! {
+        document::Script { src: SCRIPT_JS, defer: true }
         div {
             tabindex: "0",
             class: "flex items-center min-h-[100dvh] justify-center items-center",
