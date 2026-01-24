@@ -1,9 +1,11 @@
 
 
 mod game;
+use std::f64::consts::{PI, FRAC_PI_2,FRAC_PI_8, TAU};
+
 use crate::game::game_variants::game_variant_0::{GameVariant0, AllowedMoves, GameStatus};
 
-use dioxus::prelude::*;
+use dioxus::{html::g::direction, prelude::*};
 
 
 const FAVICON: Asset = asset!("/assets/favicon.ico");
@@ -13,17 +15,10 @@ const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 const COMPONENTS_CSS: Asset = asset!("/assets/dx-components-theme.css");
 const SCRIPT_JS: Asset = asset!("/assets/script.js");
 
-#[derive(Debug)]
-enum Direction {
-    Left,
-    Right,
-    Up,
-    Down
-}
 
-const SENSITIVITY : f64 = 80.0;
 
-#[derive(Routable, Clone)]
+
+#[derive(Routable, Clone, Copy)]
 #[rustfmt::skip]
 enum Route {
     /// The home page that present the game options
@@ -38,6 +33,96 @@ enum Route {
     
 }
 
+// For each direction we have a fixed angle and for each direction we have an angle of
+// sensitivity where if angle detected is between fixed_angle -+ angle_sensitivity, so 
+// we conclude that it is a part of this direction
+//
+// arguments : 
+// min_sensitivity : it is the minimum length of swap path to be accepted
+// angle_sensitivity : to conclude if it's part of certain direction
+// diff_x : is swap path difference between last point x coordinates and first x point
+// diff_y : is swap path difference between last point y coordinates and first y point
+#[derive(Debug, Clone,Copy)]
+enum Direction {
+    Right,
+    Up,
+    Left,
+    Down
+}
+
+struct DirectionInfoSwapType {
+    asociated_direction : Direction,
+    angle_ranges : [Option<(f64,f64)>;2],
+}
+
+const DIRECTION_INFOS : [DirectionInfoSwapType;4]= [
+    DirectionInfoSwapType{
+        asociated_direction : Direction::Right,
+        angle_ranges : [Some((0.0,0.0 + FRAC_PI_8)), Some((TAU-FRAC_PI_8,TAU))],
+    },
+    DirectionInfoSwapType{
+        asociated_direction : Direction::Up,
+        angle_ranges : [Some((FRAC_PI_2 - FRAC_PI_8,FRAC_PI_2 + FRAC_PI_8)),None],
+
+    },
+    DirectionInfoSwapType{
+        asociated_direction : Direction::Left,
+        angle_ranges : [Some((PI - FRAC_PI_8,PI + FRAC_PI_8)),None],
+
+    },
+    DirectionInfoSwapType{
+        asociated_direction : Direction::Down,
+        angle_ranges : [Some((3.0*FRAC_PI_2 - FRAC_PI_8,3.0*FRAC_PI_2 + FRAC_PI_8)),None],
+    },
+
+];
+
+fn is_part_of_this_angle_range(angle:f64, angle_ref_info:&DirectionInfoSwapType)-> bool{
+    for angle_range in angle_ref_info.angle_ranges {
+        if let Some((min, max)) = angle_range{
+            if angle >= min && angle <= max {
+                return true
+            }
+        }
+    }
+    false
+}
+
+const SENSITIVITY : f64 = 80.0;
+const MIN_LENGTH_SWAP : f64 = 80.0;
+
+fn get_swap_directions(diff_x : f64, diff_y:f64) -> Vec<Direction> {
+
+    let mut directions: Vec<Direction> = Vec::new();;
+    let swap_length_p_2 = diff_x.powi(2) + diff_y.powi(2);
+    if swap_length_p_2 < MIN_LENGTH_SWAP {
+        return directions
+    }
+    
+    let  tan_phi = diff_y / diff_x;
+
+    let mut phi = tan_phi.atan();
+    if phi < 0.0 {
+        phi = TAU + phi;
+        if diff_x < 0.0 {
+            phi = phi - PI;
+        }
+    }
+    else if phi > 0.0 && diff_x < 0.0 {
+        phi = phi + PI
+
+    }
+
+
+
+    for direction_info in DIRECTION_INFOS {
+        if is_part_of_this_angle_range(phi, &direction_info) {
+            directions.push(direction_info.asociated_direction)
+        }
+    }
+    directions
+
+}
 
 
 fn main() {
@@ -245,17 +330,8 @@ pub fn Classic2048Inner() -> Element {
                                 - touch_start.client_coordinates().x;
                             let diff_y = touch_end.client_coordinates().y
                                 - touch_start.client_coordinates().y;
-
-                            if diff_x > SENSITIVITY {
-                                directions.push(Direction::Right);
-                            } else if diff_x < -SENSITIVITY {
-                                directions.push(Direction::Left);
-                            }
-                            if diff_y > SENSITIVITY {
-                                directions.push(Direction::Down)
-                            } else if diff_y < -SENSITIVITY {
-                                directions.push(Direction::Up)
-                            }
+                            // because the direction axis of y  is down
+                            directions = get_swap_directions(diff_x, -diff_y);
 
                             logs.write().push(format!("directions : {directions:#?}"));
                         }
