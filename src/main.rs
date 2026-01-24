@@ -358,6 +358,22 @@ pub fn Classic2048Inner() -> Element {
             },
             h1 { class: "absolute top-20 text-4xl font-bold text-[#776e65]", "Classic 2048" }
             div { class: "wrapper",
+                div { class: "mb-4 flex justify-between",
+
+                    button {
+                        class: "px-4 py-2 bg-[#8f7a66] text-white rounded hover:bg-[#7c6957]",
+                        onclick: move |_| {
+                            *g_signal.write() = GameVariant0::<c_width, c_height>::new_game();
+                        },
+                        "Restart"
+                    }
+                    div {
+                        "Score : "
+                        {g_signal.read().game_variant_data.score.to_string()}
+                    }
+                
+                }
+
                 div { class: "bg-[#bbada0] p-4 rounded-lg shadow-lg",
                     div { id: "board", class: "grid grid-cols-{c_width} gap-3",
 

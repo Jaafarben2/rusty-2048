@@ -13,7 +13,8 @@ type SpecificElementType = i32;
 pub struct GameVariant0<const C_W:usize, const C_H:usize> {
     pub array : [[Option<SpecificElementType>; C_W]; C_H],
     pub mergers_infos : [[Option<<RetainerMerger<SpecificElementType> as RetainerManager<SpecificElementType>>::RetainerMergerInfoType>; C_W]; C_H],
-    pub nones_number : usize
+    pub nones_number : usize,
+    pub score:i32
 }
 pub type SpecificGame<const C_W: usize, const C_H: usize> = Swap2DGame<GameVariant0<C_W, C_H>>;
 
@@ -132,6 +133,9 @@ impl<const W: usize, const H: usize> Swap2DGameConfig for Swap2DGame<GameVariant
 
     fn board_elementary_move_details(&mut self, Idx: (usize, usize), retainer_merger_info: Option<<<Swap2DGame<GameVariant0<W, H>> as Swap2DGameConfig>::RetainerManager as RetainerManager<Self::ElementType>>::RetainerMergerInfoType>) {
         self.game_variant_data.mergers_infos[Idx.0][Idx.1] = retainer_merger_info;
+        if let  Some(RetainerMergerInfo::Merged((_, element_1), (_, element_2))) = retainer_merger_info {
+            self.game_variant_data.score += element_1 + element_2;
+        }
     }
 
     fn board_game_status_fn(&self) -> GameStatus {
@@ -164,6 +168,7 @@ impl<const C_W: usize, const C_H: usize> GameVariant0<C_W, C_H> {
                 array: [[None; C_W]; C_H],
                 mergers_infos: [[None; C_W]; C_H],
                 nones_number: C_W * C_H,
+                score : 0,
             };
             
             game_variant.array[rand_idx_0_start][rand_idx_1_start] = get_rand_value();
