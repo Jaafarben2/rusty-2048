@@ -2,17 +2,18 @@ use dioxus::html::u::is;
 use getrandom;
 use crate::game::game_kernel as game_kernel;
 use game_kernel::{Swap2DGame, Swap2DGameConfig, RetainerManager, BoardIndex};
-use crate::game::retainer_merger_variants::retainer_merger_variant_0::RetainerMerger as RetainerMerger;
-use crate::game::retainer_merger_variants::retainer_merger_variant_0::{RetainerMergerInfo};
+use crate::game::retainer_merger_variants::retainer_merger_variant_1::RetainerMerger as RetainerMerger;
+use crate::game::retainer_merger_variants::retainer_merger_variant_1::{RetainerMergerInfo, SpecificElementType as SpecificElementTypeVariant1 };
 use std::ops::Add;
 
 pub use game_kernel::AllowedMoves;
 pub use game_kernel::GameStatus;
 
-type SpecificElementType = i32;
+type T = i32;
+pub type SpecificElementType = SpecificElementTypeVariant1<i32>;
 pub struct GameVariant<const C_W:usize, const C_H:usize> {
     pub array : [[Option<SpecificElementType>; C_W]; C_H],
-    pub mergers_infos : [[Option<<RetainerMerger<SpecificElementType> as RetainerManager<SpecificElementType>>::RetainerMergerInfoType>; C_W]; C_H],
+    pub mergers_infos : [[Option<<RetainerMerger<T> as RetainerManager<SpecificElementTypeVariant1<T>>>::RetainerMergerInfoType>; C_W]; C_H],
     pub nones_number : usize,
     pub score:i32
 }
@@ -86,9 +87,9 @@ fn get_rand_value() -> Option<SpecificElementType>{
     // Some(2) will have around 87,89 % of proba
 
     if (random_value[0] / 25)  < 9 {
-        Some(2)
+        Some(SpecificElementType::Some(2))
     } else {
-        Some(4)
+        Some(SpecificElementType::Some(2))
     }
 
 }
@@ -96,7 +97,7 @@ fn get_rand_value() -> Option<SpecificElementType>{
 impl<const W: usize, const H: usize> Swap2DGameConfig for Swap2DGame<GameVariant<W, H>> {
 
     type ElementType = SpecificElementType;
-    type RetainerManager = RetainerMerger<Self::ElementType>;
+    type RetainerManager = RetainerMerger<T>;
 
     fn board_get_element(&self, idx: (usize, usize)) -> Option<Self::ElementType> {
         self.game_variant_data.array[idx.0][idx.1]
@@ -133,8 +134,8 @@ impl<const W: usize, const H: usize> Swap2DGameConfig for Swap2DGame<GameVariant
 
     fn board_elementary_move_details(&mut self, Idx: (usize, usize), retainer_merger_info: Option<<<Swap2DGame<GameVariant<W, H>> as Swap2DGameConfig>::RetainerManager as RetainerManager<Self::ElementType>>::RetainerMergerInfoType>) {
         self.game_variant_data.mergers_infos[Idx.0][Idx.1] = retainer_merger_info;
-        if let  Some(RetainerMergerInfo::Merged((_, element_1), (_, element_2))) = retainer_merger_info {
-            self.game_variant_data.score += element_1 + element_2;
+        if let  Some(RetainerMergerInfo::Merged((_, SpecificElementType::Some(a)), (_,  SpecificElementType::Some(b)))) = retainer_merger_info {
+            self.game_variant_data.score += a + b;
         }
     }
 
@@ -142,7 +143,7 @@ impl<const W: usize, const H: usize> Swap2DGameConfig for Swap2DGame<GameVariant
         let mut able_to_move = false;
         for id_x in 0..self.board_size.0 {
             for id_y in 0..self.board_size.1 {
-                if self.board_get_element((id_x, id_y)) == Some(2048) {
+                if self.board_get_element((id_x, id_y)) == Some(SpecificElementType::Some(2048)) {
                     return GameStatus::END_SUCCESS;
                 }
                 if can_move(self, (id_x, id_y)){
@@ -162,8 +163,10 @@ impl<const C_W: usize, const C_H: usize> GameVariant<C_W, C_H> {
     // the size shall be under the capacity
     pub fn new_game_specific_dim(dim : (usize, usize)) -> Result<SpecificGame<C_W, C_H>, String>{
         if (dim.0 <= C_W && dim.1 <= C_H) {
-            let rand_idx_0_start = get_rand_idx(0, C_H);
-            let rand_idx_1_start = get_rand_idx(0, C_W);
+            let rand_idx_0_0_start = get_rand_idx(0, C_H);
+            let rand_idx_0_1_start = get_rand_idx(0, C_W);
+            let rand_idx_1_0_start = get_rand_idx(0, C_H);
+            let rand_idx_1_1_start = get_rand_idx(0, C_W);
             let mut game_variant = GameVariant {
                 array: [[None; C_W]; C_H],
                 mergers_infos: [[None; C_W]; C_H],
@@ -171,7 +174,8 @@ impl<const C_W: usize, const C_H: usize> GameVariant<C_W, C_H> {
                 score : 0,
             };
             
-            game_variant.array[rand_idx_0_start][rand_idx_1_start] = get_rand_value();
+            game_variant.array[rand_idx_0_0_start][rand_idx_0_1_start] = get_rand_value();
+            game_variant.array[rand_idx_1_0_start][rand_idx_1_1_start] = Some(SpecificElementType::Block);
             game_variant.nones_number -= 1;
 
             let g = SpecificGame::game_init((C_W, C_H), (C_W, C_H), game_variant);
