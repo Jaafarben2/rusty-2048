@@ -22,7 +22,6 @@ impl<ElementType : Copy+Add<Output=ElementType>+PartialEq> RetainerManager<Eleme
     fn push_and_pop_if_filled(&mut self, ctx_element: CtxElementType, element: Option<ElementType>) ->  (RetainerManagerElementType<ElementType>,Self::RetainerMergerInfoType) {
         match (self.0, self.1) {
             (Some((ctx_element_a, a)), Some((ctx_element_b, b))) if a == b => {
-                //println!("{}, {}", a, b);
                 self.0 = None;
                 self.1 = element.map(|e| (ctx_element, e));
                 (RetainerManagerElementType::GameElement(a+a),RetainerMergerInfo::Merged((ctx_element_a, a), (ctx_element_b, b)))

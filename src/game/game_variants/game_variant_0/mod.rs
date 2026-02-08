@@ -1,10 +1,8 @@
-use dioxus::html::u::is;
 use getrandom;
 use crate::game::game_kernel as game_kernel;
 use game_kernel::{Swap2DGame, Swap2DGameConfig, RetainerManager, BoardIndex};
 use crate::game::retainer_merger_variants::retainer_merger_variant_0::RetainerMerger as RetainerMerger;
 use crate::game::retainer_merger_variants::retainer_merger_variant_0::{RetainerMergerInfo};
-use std::ops::Add;
 
 pub use game_kernel::AllowedMoves;
 pub use game_kernel::GameStatus;

@@ -1,6 +1,3 @@
-use std::ops::{Add};
-
-
 #[derive(Copy, Clone, Debug)]
 pub enum AllowedMoves {
     UP,
@@ -15,18 +12,20 @@ pub enum GameStatus {
     END_SUCCESS,
 }
 
+pub type IdxType = usize;
+
 #[derive(Copy, Clone, Debug)]
 pub enum BoardIndex {
-    CorrectIndex((usize,usize)),
+    CorrectIndex((IdxType,IdxType)),
     OutOfBounds
 }
 
-pub type CtxElementType = (usize, usize);
+pub type CtxElementType = (IdxType, IdxType);
 
 pub struct Swap2DGame<GameVariant> {
-    board_top_left_corner: (usize, usize),
-    pub board_size: (usize, usize),
-    board_capacity: (usize, usize),
+    board_top_left_corner: (IdxType, IdxType),
+    pub board_size: (IdxType, IdxType),
+    board_capacity: (IdxType, IdxType),
     pub game_status: GameStatus,
     
     // Here the variant is used to own the data used by the custom implementation
@@ -41,12 +40,12 @@ pub struct Swap2DGame<GameVariant> {
 
 pub enum RetainerManagerElementType<ElementType>{
     NeutralIgnore,
-    IncrementalIgnore,
+    GameElementWithIncrementalIgnore(IdxType, ElementType),
     GameElement(ElementType)
 }
 
 pub trait RetainerManager<ElementType>{
-    type RetainerMergerInfoType;
+    type RetainerMergerInfoType:Copy;
     fn new() -> Self;
     fn push_and_pop_if_filled(&mut self, ctx_element: CtxElementType, element: Option<ElementType>) -> (RetainerManagerElementType<ElementType>,Self::RetainerMergerInfoType);
     fn pop(&mut self) -> (RetainerManagerElementType<ElementType>,Self::RetainerMergerInfoType);
@@ -57,9 +56,9 @@ pub trait Swap2DGameConfig {
     type ElementType:Copy+PartialEq;
     type RetainerManager:RetainerManager<Self::ElementType>;
     
-    fn board_get_element(&self, _: (usize, usize)) -> Option<Self::ElementType>;
-    fn board_set_element(&mut self, _: (usize, usize), _: Option<Self::ElementType>);
-    fn board_elementary_move_details(&mut self, _: (usize, usize), retainer_merger_info: Option<<Self::RetainerManager as RetainerManager<Self::ElementType>>::RetainerMergerInfoType>);
+    fn board_get_element(&self, _: (IdxType, IdxType)) -> Option<Self::ElementType>;
+    fn board_set_element(&mut self, _: (IdxType, IdxType), _: Option<Self::ElementType>);
+    fn board_elementary_move_details(&mut self, _: (IdxType, IdxType), retainer_merger_info: Option<<Self::RetainerManager as RetainerManager<Self::ElementType>>::RetainerMergerInfoType>);
     fn board_update_after_move(&mut self, _: AllowedMoves);
     fn board_game_status_fn(&self) -> GameStatus;
 
@@ -70,7 +69,7 @@ pub trait Swap2DGameConfig {
 impl<GameVariant> Swap2DGame<GameVariant>
     where Swap2DGame<GameVariant>:Swap2DGameConfig,
 {
-        pub fn game_init(board_size: (usize, usize), board_capacity: (usize, usize), game_variant_data: GameVariant) -> Self {
+        pub fn game_init(board_size: (IdxType, IdxType), board_capacity: (IdxType, IdxType), game_variant_data: GameVariant) -> Self {
         Self {
             board_top_left_corner: (0, 0),
             board_size,
@@ -84,7 +83,7 @@ impl<GameVariant> Swap2DGame<GameVariant>
         // to be implemented if needed
     }
 
-    pub fn step_2d(&self, idx: (usize, usize), move_type:AllowedMoves) -> BoardIndex {
+    pub fn step_2d(&self, idx: (IdxType, IdxType), move_type:AllowedMoves) -> BoardIndex {
         match move_type {
             AllowedMoves::DOWN if idx.0 < self.board_top_left_corner.0 + self.board_size.0 - 1 => BoardIndex::CorrectIndex((idx.0 + 1, idx.1)),
             AllowedMoves::UP if idx.0 > self.board_top_left_corner.0 => BoardIndex::CorrectIndex((idx.0 - 1, idx.1)),
@@ -165,16 +164,29 @@ impl<GameVariant> Swap2DGame<GameVariant>
                             
                             board_index_to_be_filled = self.step_2d(IdxToBeFilled, inner_move);
                         }
-                        (RetainerManagerElementType::IncrementalIgnore,info) => {
-                            self.board_set_element(IdxToBeFilled, None);
-                            self.board_elementary_move_details(IdxToBeFilled, None);
-                            board_index_to_be_filled = self.step_2d(IdxToBeFilled, inner_move);
+                        (RetainerManagerElementType::GameElementWithIncrementalIgnore(steps,a),info) => {
+
+                            for _ in 0..steps {
+                                if let BoardIndex::CorrectIndex(IdxToBeFilled) = board_index_to_be_filled  {
+                                    self.board_set_element(IdxToBeFilled, None);
+                                    self.board_elementary_move_details(IdxToBeFilled, Some(info));
+                                    board_index_to_be_filled = self.step_2d(IdxToBeFilled, inner_move);
+                                }
+                                else{
+                                    break;
+                                }
+                            }
+                            if let BoardIndex::CorrectIndex(IdxToBeFilled) = board_index_to_be_filled  {
+                                self.board_set_element(IdxToBeFilled, Some(a));
+                                self.board_elementary_move_details(IdxToBeFilled, Some(info));
+                                board_index_to_be_filled = self.step_2d(IdxToBeFilled, inner_move);
+                            }
+                            
                         }
                         (RetainerManagerElementType::NeutralIgnore,_) => {
                         }
                     }
                 }
-                //println!("{:?}", IdxInner);
                 board_index_inner = self.step_2d(IdxInner, inner_move);
             }
 
@@ -185,16 +197,35 @@ impl<GameVariant> Swap2DGame<GameVariant>
                         self.board_set_element(IdxInner, Some(a));
                         self.board_elementary_move_details(IdxInner, Some(info));
                     }
-                    (RetainerManagerElementType::IncrementalIgnore,info) => {
-                        self.board_set_element(IdxInner, None);
-                        self.board_elementary_move_details(IdxInner, Some(info));
+                    (RetainerManagerElementType::GameElementWithIncrementalIgnore(steps, a),info) => {
+
+
+                        for _ in 0..steps {
+                            if let BoardIndex::CorrectIndex(IdxInner) = board_index_to_be_filled  {
+                                self.board_set_element(IdxInner, None);
+                                self.board_elementary_move_details(IdxInner, Some(info));
+                                board_index_to_be_filled = self.step_2d(IdxInner, inner_move);
+
+                            }
+                            else{
+                                break;
+                            }
+                        }
+                        if let BoardIndex::CorrectIndex(IdxInner) = board_index_to_be_filled  {
+                            self.board_set_element(IdxInner, Some(a));
+                            self.board_elementary_move_details(IdxInner, Some(info));
+                            
+                        }
+
                     }
                     (RetainerManagerElementType::NeutralIgnore,_) => {
                         self.board_set_element(IdxInner, None);
                         self.board_elementary_move_details(IdxInner, None);
                     }                    
                 }
-                board_index_to_be_filled = self.step_2d(IdxInner, inner_move);
+                if let BoardIndex::CorrectIndex(IdxInner) = board_index_to_be_filled{
+                    board_index_to_be_filled = self.step_2d(IdxInner, inner_move)
+                }
             }
             board_index_outer =self.step_2d(IdxOuter, outer_move);
         }

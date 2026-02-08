@@ -19,6 +19,19 @@ pub struct GameVariant<const C_W:usize, const C_H:usize> {
 }
 pub type SpecificGame<const C_W: usize, const C_H: usize> = Swap2DGame<GameVariant<C_W, C_H>>;
 
+impl<const C_W: usize, const C_H: usize> PartialEq for GameVariant<C_W, C_H>{
+    fn eq(&self, other :&Self) -> bool {
+            for id_x in 0..C_H {
+                for id_y in 0..C_W {
+                    if self.mergers_infos[id_x][id_y] != other.mergers_infos[id_x][id_y]{
+                        return false;
+                    }
+                }
+            }
+            true
+    }
+}
+
 fn can_move<const C_W: usize, const C_H: usize>(g:&SpecificGame<C_W, C_H>, idx :(usize, usize)) -> bool {
     let mut temp_element : Option<SpecificElementType> ;
     let ele = g.board_get_element((idx.0, idx.1));
@@ -27,23 +40,23 @@ fn can_move<const C_W: usize, const C_H: usize>(g:&SpecificGame<C_W, C_H>, idx :
     }
     if let BoardIndex::CorrectIndex(Idx) = g.step_2d((idx.0, idx.1), AllowedMoves::DOWN) {
         temp_element = g.board_get_element( (Idx.0, Idx.1));
-        if temp_element == None || temp_element == ele {
+        if temp_element == None || ((temp_element == ele) && ((temp_element != Some(SpecificElementType::BlockFixed)) && (temp_element != Some(SpecificElementType::Block)))) {
             return true;
         }
     }
     if let BoardIndex::CorrectIndex(Idx) =  g.step_2d((idx.0, idx.1), AllowedMoves::UP)  {
         temp_element = g.board_get_element((Idx.0, Idx.1));
-        if temp_element == None || temp_element == ele {
+        if temp_element == None || ((temp_element == ele) &&  ((temp_element != Some(SpecificElementType::BlockFixed)) && (temp_element != Some(SpecificElementType::Block))))  {
             return true;
         }    }
     if let BoardIndex::CorrectIndex(Idx) =   g.step_2d((idx.0, idx.1), AllowedMoves::RIGHT)  {
         temp_element = g.board_get_element((Idx.0, Idx.1));
-        if temp_element == None || temp_element == ele {
+        if temp_element == None ||  ((temp_element == ele) &&  ((temp_element != Some(SpecificElementType::BlockFixed)) && (temp_element != Some(SpecificElementType::Block)))) {
             return true;
         }    }
     if let BoardIndex::CorrectIndex(Idx) =   g.step_2d((idx.0, idx.1), AllowedMoves::LEFT)  {
         temp_element = g.board_get_element((Idx.0, Idx.1));
-        if temp_element == None || temp_element == ele {
+        if temp_element == None ||  ((temp_element == ele) &&  ((temp_element != Some(SpecificElementType::BlockFixed)) && (temp_element != Some(SpecificElementType::Block))))  {
             return true;
         }
     }
@@ -69,14 +82,29 @@ fn is_status_changed<const C_W: usize, const C_H: usize>(g:&SpecificGame<C_W, C_
     false
 }
 
-fn get_rand_idx(start_idx: usize, end_idx: usize) -> usize {
+pub fn set_nth_none_element<const C_W: usize, const C_H: usize>(g:&mut SpecificGame<C_W, C_H>, insert_idx : usize, ele_set : Option<<SpecificGame<C_W, C_H> as Swap2DGameConfig>::ElementType>){
+    let mut curr_idx = 0;
+    for id_x in 0..g.board_size.0 {
+        for id_y in 0..g.board_size.1 {
+            let ele =g.board_get_element( (id_x, id_y));
+            if (ele, curr_idx) == (None, insert_idx) {
+                g.board_set_element((id_x, id_y), ele_set);
+            }
+            if ele == None {
+                curr_idx += 1;
+            }
+        }
+    }
+}
+
+pub fn get_rand_idx(start_idx: usize, end_idx: usize) -> usize {
     //let insert_idx = thread_rng().gen_range(0..g.game_custom_info.nones_number);
     let mut random_value: [u8;1] = [0];
     getrandom::getrandom(&mut random_value);
     (random_value[0] as usize) % (end_idx - start_idx) + start_idx
 }
 
-fn get_rand_value() -> Option<SpecificElementType>{
+pub fn get_rand_value() -> Option<SpecificElementType>{
 
     let mut random_value: [u8;1] = [0];
 
@@ -117,19 +145,7 @@ impl<const W: usize, const H: usize> Swap2DGameConfig for Swap2DGame<GameVariant
 
         let insert_idx = get_rand_idx(0, self.game_variant_data.nones_number);
 
-        let mut curr_idx = 0;
-        for id_x in 0..self.board_size.0 {
-            for id_y in 0..self.board_size.1 {
-                let ele =self.board_get_element( (id_x, id_y));
-                if (ele, curr_idx) == (None, insert_idx) {
-                    self.board_set_element((id_x, id_y), get_rand_value());
-                    //println!("hhhhh {:?}", (id_x, id_y));
-                }
-                if ele == None {
-                    curr_idx += 1;
-                }
-            }
-        }
+        set_nth_none_element(self, insert_idx,get_rand_value());
     }
 
     fn board_elementary_move_details(&mut self, Idx: (usize, usize), retainer_merger_info: Option<<<Swap2DGame<GameVariant<W, H>> as Swap2DGameConfig>::RetainerManager as RetainerManager<Self::ElementType>>::RetainerMergerInfoType>) {
@@ -163,22 +179,15 @@ impl<const C_W: usize, const C_H: usize> GameVariant<C_W, C_H> {
     // the size shall be under the capacity
     pub fn new_game_specific_dim(dim : (usize, usize)) -> Result<SpecificGame<C_W, C_H>, String>{
         if (dim.0 <= C_W && dim.1 <= C_H) {
-            let rand_idx_0_0_start = get_rand_idx(0, C_H);
-            let rand_idx_0_1_start = get_rand_idx(0, C_W);
-            let rand_idx_1_0_start = get_rand_idx(0, C_H);
-            let rand_idx_1_1_start = get_rand_idx(0, C_W);
             let mut game_variant = GameVariant {
                 array: [[None; C_W]; C_H],
                 mergers_infos: [[None; C_W]; C_H],
                 nones_number: C_W * C_H,
                 score : 0,
             };
-            
-            game_variant.array[rand_idx_0_0_start][rand_idx_0_1_start] = get_rand_value();
-            game_variant.array[rand_idx_1_0_start][rand_idx_1_1_start] = Some(SpecificElementType::Block);
-            game_variant.nones_number -= 1;
 
-            let g = SpecificGame::game_init((C_W, C_H), (C_W, C_H), game_variant);
+            let mut g: Swap2DGame<GameVariant<C_W, C_H>> = SpecificGame::game_init(dim, (C_W, C_H), game_variant);
+
             return Ok(g);
         }
         else {

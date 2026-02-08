@@ -362,6 +362,9 @@
   .grid-cols-12 {
     grid-template-columns: repeat(12, minmax(0, 1fr));
   }
+  .grid-rows-8 {
+    grid-template-rows: repeat(8, minmax(0, 1fr));
+  }
   .items-center {
     align-items: center;
   }
@@ -399,8 +402,17 @@
   .bg-\[\#8f7a66\] {
     background-color: #8f7a66;
   }
+  .bg-\[\#a44734\] {
+    background-color: #a44734;
+  }
+  .bg-\[\#b5523b\] {
+    background-color: #b5523b;
+  }
   .bg-\[\#bbada0\] {
     background-color: #bbada0;
+  }
+  .bg-\[\#c05a42\] {
+    background-color: #c05a42;
   }
   .bg-\[\#cdc1b4\] {
     background-color: #cdc1b4;
@@ -508,9 +520,6 @@
   }
   .text-\[\#776e65\] {
     color: #776e65;
-  }
-  .text-black {
-    color: var(--color-black);
   }
   .text-green-400 {
     color: var(--color-green-400);
